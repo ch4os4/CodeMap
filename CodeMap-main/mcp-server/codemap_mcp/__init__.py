@@ -1,0 +1,1 @@
+"""CodeMap MCP server package."""
