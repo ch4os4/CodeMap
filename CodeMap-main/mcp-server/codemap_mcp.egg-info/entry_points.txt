@@ -1,2 +1,0 @@
-[console_scripts]
-codemap-mcp = codemap_mcp.server:main

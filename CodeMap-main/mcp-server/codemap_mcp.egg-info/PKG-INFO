@@ -1,6 +1,0 @@
-Metadata-Version: 2.4
-Name: codemap-mcp
-Version: 0.2.6
-Summary: MCP server for CodeMap AST graph scanning, querying, slicing, and impact analysis
-Requires-Python: >=3.10
-Requires-Dist: mcp[cli]<2,>=1.26

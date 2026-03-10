@@ -23,4 +23,8 @@ bin/codegraph-*
 __pycache__/
 *.pyc
 mcp-server/.venv/
+mcp-server/codemap_mcp.egg-info/
 tmp-install-test/
+.serena/
+codemap.zip
+CodeMap-main/
