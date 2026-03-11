@@ -1,5 +1,3 @@
-#![cfg(feature = "external-fixtures")]
-
 /// slicer 集成测试
 ///
 /// 移植自 ccplugin/cli/test/slicer.test.js

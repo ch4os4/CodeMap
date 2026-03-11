@@ -1,4 +1,0 @@
-interface:
-  display_name: "CodeMap"
-  short_description: "Scan, slice, query, and update AST code graphs for compact codebase context"
-  default_prompt: "Use CodeMap to understand this repository before making changes. Scan or update the graph if needed, then load a minimal slice, query symbols, and report any impact analysis that matters."

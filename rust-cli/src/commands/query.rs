@@ -14,9 +14,6 @@ pub struct QueryArgs {
     /// Query a module instead of a symbol
     #[arg(long)]
     pub module: bool,
-    /// Output machine-readable JSON
-    #[arg(long)]
-    pub json: bool,
 }
 
 pub fn run(args: QueryArgs) {
@@ -46,24 +43,7 @@ pub fn run(args: QueryArgs) {
     if args.module {
         // 模块查询模式
         match crate::query::query_module(&graph, &args.symbol) {
-            Some(result) => {
-                if args.json {
-                    let payload = serde_json::json!({
-                        "mode": "module",
-                        "query": args.symbol,
-                        "result": result,
-                    });
-                    match serde_json::to_string_pretty(&payload) {
-                        Ok(json) => println!("{}", json),
-                        Err(e) => {
-                            eprintln!("Serialization error: {}", e);
-                            std::process::exit(1);
-                        }
-                    }
-                } else {
-                    println!("{}", crate::query::format_module_result(&result));
-                }
-            }
+            Some(result) => println!("{}", crate::query::format_module_result(&result)),
             None => {
                 eprintln!("Module '{}' not found.", args.symbol);
                 // 列出可用模块
@@ -81,22 +61,6 @@ pub fn run(args: QueryArgs) {
             type_filter: args.r#type.clone(),
         };
         let results = crate::query::query_symbol(&graph, &args.symbol, &opts);
-        if args.json {
-            let payload = serde_json::json!({
-                "mode": "symbol",
-                "query": args.symbol,
-                "type": args.r#type,
-                "results": results,
-            });
-            match serde_json::to_string_pretty(&payload) {
-                Ok(json) => println!("{}", json),
-                Err(e) => {
-                    eprintln!("Serialization error: {}", e);
-                    std::process::exit(1);
-                }
-            }
-        } else {
-            println!("{}", crate::query::format_symbol_results(&results));
-        }
+        println!("{}", crate::query::format_symbol_results(&results));
     }
 }

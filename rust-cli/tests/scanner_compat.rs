@@ -1,5 +1,3 @@
-#![cfg(feature = "external-fixtures")]
-
 /// scanner 集成测试
 ///
 /// 移植自 ccplugin/cli/test/scanner.test.js

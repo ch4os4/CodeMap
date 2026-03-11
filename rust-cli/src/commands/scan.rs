@@ -8,9 +8,6 @@ pub struct ScanArgs {
     /// Additional glob patterns to exclude
     #[arg(long, num_args = 1..)]
     pub exclude: Vec<String>,
-    /// Output machine-readable JSON
-    #[arg(long)]
-    pub json: bool,
 }
 
 pub fn run(args: ScanArgs) {
@@ -24,9 +21,7 @@ pub fn run(args: ScanArgs) {
         }
     };
 
-    if !args.json {
-        println!("Scanning {}...", root.display());
-    }
+    println!("Scanning {}...", root.display());
 
     match crate::scanner::scan_and_save(&root, &args.exclude) {
         Ok(graph) => {
@@ -35,28 +30,11 @@ pub fn run(args: ScanArgs) {
             if let Err(e) = crate::slicer::save_slices(&codemap_dir, &graph) {
                 eprintln!("Warning: failed to save slices: {}", e);
             }
-            if args.json {
-                let payload = serde_json::json!({
-                    "project": graph.project,
-                    "scannedAt": graph.scanned_at,
-                    "commitHash": graph.commit_hash,
-                    "summary": graph.summary,
-                    "outputDir": codemap_dir,
-                });
-                match serde_json::to_string_pretty(&payload) {
-                    Ok(json) => println!("{}", json),
-                    Err(e) => {
-                        eprintln!("Serialization error: {}", e);
-                        std::process::exit(1);
-                    }
-                }
-            } else {
-                println!("Scan complete.");
-                println!("  Files:     {}", graph.summary.total_files);
-                println!("  Functions: {}", graph.summary.total_functions);
-                println!("  Modules:   {}", graph.summary.modules.join(", "));
-                println!("  Output:    {}", codemap_dir.display());
-            }
+            println!("Scan complete.");
+            println!("  Files:     {}", graph.summary.total_files);
+            println!("  Functions: {}", graph.summary.total_functions);
+            println!("  Modules:   {}", graph.summary.modules.join(", "));
+            println!("  Output:    {}", codemap_dir.display());
         }
         Err(e) => {
             eprintln!("Scan failed: {}", e);

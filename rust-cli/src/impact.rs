@@ -1,10 +1,9 @@
 use std::collections::{HashMap, HashSet, VecDeque};
 
 use crate::graph::{CodeGraph, ModuleEntry};
-use serde::Serialize;
 
 /// 影响分析结果
-#[derive(Debug, Serialize)]
+#[derive(Debug)]
 pub struct ImpactResult {
     pub target_type: TargetType,
     pub target_module: String,
@@ -14,8 +13,7 @@ pub struct ImpactResult {
     pub impacted_files: Vec<String>,
 }
 
-#[derive(Debug, PartialEq, Eq, Serialize)]
-#[serde(rename_all = "lowercase")]
+#[derive(Debug, PartialEq, Eq)]
 pub enum TargetType {
     Module,
     File,

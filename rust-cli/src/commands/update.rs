@@ -9,9 +9,6 @@ pub struct UpdateArgs {
     /// Additional glob patterns to exclude
     #[arg(long, num_args = 1..)]
     pub exclude: Vec<String>,
-    /// Output machine-readable JSON
-    #[arg(long)]
-    pub json: bool,
 }
 
 pub fn run(args: UpdateArgs) {
@@ -83,36 +80,16 @@ pub fn run(args: UpdateArgs) {
     let changes = crate::differ::detect_changed_files(&old_hashes, &new_hashes);
 
     if changes.is_empty() {
-        if args.json {
-            let payload = serde_json::json!({
-                "changed": false,
-                "added": Vec::<String>::new(),
-                "modified": Vec::<String>::new(),
-                "removed": Vec::<String>::new(),
-                "summary": graph.summary,
-                "scannedAt": graph.scanned_at,
-            });
-            match serde_json::to_string_pretty(&payload) {
-                Ok(json) => println!("{}", json),
-                Err(e) => {
-                    eprintln!("Serialization error: {}", e);
-                    std::process::exit(1);
-                }
-            }
-        } else {
-            println!("No changes detected.");
-        }
+        println!("No changes detected.");
         return;
     }
 
-    if !args.json {
-        println!(
-            "Changes: +{} added, ~{} modified, -{} removed",
-            changes.added.len(),
-            changes.modified.len(),
-            changes.removed.len()
-        );
-    }
+    println!(
+        "Changes: +{} added, ~{} modified, -{} removed",
+        changes.added.len(),
+        changes.modified.len(),
+        changes.removed.len()
+    );
 
     // 解析变更文件（新增 + 修改）
     let mut updated_files: HashMap<String, crate::graph::FileEntry> = HashMap::new();
@@ -221,38 +198,20 @@ pub fn run(args: UpdateArgs) {
         eprintln!("Warning: failed to save slices: {}", e);
     }
 
-    if args.json {
-        let payload = serde_json::json!({
-            "changed": true,
-            "added": changes.added,
-            "modified": changes.modified,
-            "removed": changes.removed,
-            "summary": graph.summary,
-            "scannedAt": graph.scanned_at,
-        });
-        match serde_json::to_string_pretty(&payload) {
-            Ok(json) => println!("{}", json),
-            Err(e) => {
-                eprintln!("Serialization error: {}", e);
-                std::process::exit(1);
-            }
-        }
-    } else {
-        println!("Update complete.");
-        println!(
-            "  +{} ~{} -{}",
-            changes.added.len(),
-            changes.modified.len(),
-            changes.removed.len()
-        );
-        if !changes.added.is_empty() {
-            println!("  Added: {}", changes.added.join(", "));
-        }
-        if !changes.modified.is_empty() {
-            println!("  Modified: {}", changes.modified.join(", "));
-        }
-        if !changes.removed.is_empty() {
-            println!("  Removed: {}", changes.removed.join(", "));
-        }
+    println!("Update complete.");
+    println!(
+        "  +{} ~{} -{}",
+        changes.added.len(),
+        changes.modified.len(),
+        changes.removed.len()
+    );
+    if !changes.added.is_empty() {
+        println!("  Added: {}", changes.added.join(", "));
+    }
+    if !changes.modified.is_empty() {
+        println!("  Modified: {}", changes.modified.join(", "));
+    }
+    if !changes.removed.is_empty() {
+        println!("  Removed: {}", changes.removed.join(", "));
     }
 }

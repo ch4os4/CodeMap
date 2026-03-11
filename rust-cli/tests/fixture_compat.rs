@@ -1,5 +1,3 @@
-#![cfg(feature = "external-fixtures")]
-
 /// fixture 兼容性验证测试
 ///
 /// 对 ccplugin/cli/test/fixtures/sample-project/ 中的每种语言文件，

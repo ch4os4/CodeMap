@@ -1,0 +1,12 @@
+{
+  "chat.plugins.enabled": true,
+  "chat.plugins.paths": {
+    "J:\\AI\\CodeMap\\copilot-plugin": true
+  },
+  "chat.plugins.marketplaces": [
+    "github/copilot-plugins",
+    "github/awesome-copilot",
+    "anthropics/claude-code",
+    "killvxk/CodeMap"
+  ]
+}

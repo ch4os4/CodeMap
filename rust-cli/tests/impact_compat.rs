@@ -1,5 +1,3 @@
-#![cfg(feature = "external-fixtures")]
-
 use codegraph::impact::analyze_impact;
 /// impact 集成测试
 ///

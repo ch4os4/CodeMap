@@ -1,0 +1,26 @@
+{
+  "name": "codemap",
+  "version": "0.2.6",
+  "description": "AST-based code graph mapping plugin for GitHub Copilot and VS Code Agent Plugins",
+  "author": {
+    "name": "killvxk",
+    "url": "https://github.com/killvxk"
+  },
+  "homepage": "https://github.com/killvxk/CodeMap",
+  "repository": "https://github.com/killvxk/CodeMap",
+  "license": "MIT",
+  "keywords": [
+    "ast",
+    "code-graph",
+    "tree-sitter",
+    "code-map",
+    "scan",
+    "slice",
+    "incremental",
+    "impact-analysis",
+    "copilot"
+  ],
+  "commands": "commands/",
+  "skills": "skills/",
+  "strict": false
+}

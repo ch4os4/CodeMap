@@ -1,5 +1,3 @@
-#![cfg(feature = "external-fixtures")]
-
 use codegraph::query::{
     query_dependants, query_dependencies, query_module, query_symbol, QueryOptions,
 };

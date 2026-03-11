@@ -3,17 +3,16 @@
 /// 在 CodeGraph 中按名称搜索函数、类、类型，支持模糊匹配和类型过滤。
 /// 逻辑与 ccplugin/cli/src/query.js 保持一致。
 use crate::graph::{CodeGraph, FileEntry};
-use serde::Serialize;
 
 // ── 查询结果结构 ──────────────────────────────────────────────────────────────
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone)]
 pub struct LineRange {
     pub start: u32,
     pub end: u32,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone)]
 pub struct CallerRef {
     pub file: String,
     pub module: String,
@@ -21,7 +20,7 @@ pub struct CallerRef {
     pub use_lines: Vec<u32>,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone)]
 pub struct SymbolResult {
     pub kind: String, // "function" | "class" | "type" | "variable"
     pub name: String,
@@ -37,7 +36,7 @@ pub struct SymbolResult {
     pub imported_by_refs: Vec<CallerRef>,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone)]
 pub struct ModuleResult {
     pub name: String,
     pub files: Vec<String>,

@@ -4,7 +4,9 @@
 
 # CodeMap
 
-AST-based code graph toolkit for MCP clients, Codex/OpenAI skills, and the Rust CLI. Scan your codebase once, persist a structural graph, and load compact slices in future sessions — saving ~95% tokens compared to re-reading all source files.
+AST-based code graph mapping for [Claude Code](https://docs.anthropic.com/en/docs/claude-code), [GitHub Copilot](https://docs.github.com/en/copilot), and direct CLI workflows. Scan your codebase once, persist a structural graph, and load compact slices in future sessions — saving ~95% tokens compared to re-reading all source files.
+
+For the Copilot-focused package, see [COPILOT.md](/J:/AI/CodeMap/COPILOT.md).
 
 ## Features
 
@@ -15,83 +17,7 @@ AST-based code graph toolkit for MCP clients, Codex/OpenAI skills, and the Rust 
 - **Line-Level References** — Cross-file references pinpoint import line + usage lines; same-file exported symbols also track usage locations
 - **Incremental Updates** — File hash comparison detects changes; only re-parses modified files
 - **Impact Analysis** — See what's affected before you refactor
-- **Structured JSON Output** — `scan/status/query/update/impact` now support `--json`, making MCP integration stable
-- **MCP + Skill Ready** — Use the bundled MCP server or install the repository root as a Codex/OpenAI skill
-- **Claude Plugin Compatible** — The original Claude Code plugin remains available for existing users
-
----
-
-## Origin and Attribution
-
-- Original upstream project: [killvxk/CodeMap](https://github.com/killvxk/CodeMap)
-- Original upstream focus: Claude Code plugin workflow via `.claude-plugin/` and `ccplugin/`
-- Current repository focus: MCP server, repo-level skill, and generic CLI launchers, while keeping the Claude plugin path as a compatibility mode
-
-## Usage Modes
-
-### Original Upstream Usage
-
-The original project was designed primarily for Claude Code plugin usage:
-
-```text
-1. Add marketplace source in Claude Code
-2. Install plugin codemap@codemap-plugins
-3. Restart Claude Code
-4. Use /codemap:scan, /codemap:load, /codemap:update, /codemap:query, /codemap:impact
-```
-
-Typical original commands inside Claude Code:
-
-```text
-/plugin marketplace add /absolute/path/to/CodeMap
-/plugin install codemap@codemap-plugins
-/codemap:scan
-/codemap:load
-/codemap:query handleLogin
-```
-
-### Current Project Usage
-
-The current repository is no longer limited to Claude Code. Recommended usage order:
-
-```text
-1. MCP server for Codex and any MCP-capable client
-2. Repo-level skill for Codex / OpenAI agent environments
-3. Generic codegraph CLI launcher for direct shell usage
-4. Claude Code plugin only when you specifically want the legacy slash-command workflow
-```
-
-Typical current commands:
-
-```bash
-# MCP server
-cd mcp-server
-python -m codemap_mcp.server
-
-# CLI / launcher
-bash ./bin/codegraph scan /path/to/project --json
-bash ./bin/codegraph query handleLogin --dir /path/to/project --json
-```
-
-```powershell
-# Windows CLI / launcher
-.\bin\codegraph.cmd scan C:\path\to\project --json
-.\bin\codegraph.cmd impact auth --dir C:\path\to\project --json
-```
-
-For `VS Code + GitHub Copilot`, a one-command installer is also included:
-
-```powershell
-.\install-vscode-copilot.cmd C:\path\to\your-workspace
-```
-
-It automatically:
-
-```text
-1. Creates or reuses mcp-server/.venv
-2. Installs the codemap-mcp package
-3. Creates or merges .vscode/mcp.json in the target workspace
-```
+- **Auto-Triggering** — Skills activate automatically based on your conversation context
 
 ---
 
@@ -99,26 +25,11 @@ It automatically:
 
 ### Prerequisites
 
-- Python 3.10+ for the MCP server
-- Rust toolchain only if you want to build the CLI from source
+- **Claude Code** CLI for the original Claude plugin flow
+- **GitHub Copilot** in VS Code for Agent Plugins / custom instructions
+- Or just the `codegraph` binary for direct CLI usage
 
-### Option 1: Run as an MCP Server (Recommended)
-
-#### Fastest path: one-command install for VS Code Copilot
-
-Windows:
-
-```powershell
-.\install-vscode-copilot.cmd C:\path\to\your-workspace
-```
-
-macOS / Linux:
-
-```bash
-bash ./scripts/install-vscode-copilot.sh /path/to/your-workspace
-```
-
-The installer writes the CodeMap MCP server into the target workspace `.vscode/mcp.json`.
+### Option 1: Install as Claude Code Plugin (Recommended)
 
 #### 1. Clone the repository
 
@@ -127,82 +38,17 @@ git clone https://github.com/killvxk/CodeMap.git
 cd CodeMap
 ```
 
-#### 2. Install the MCP server package
+#### 2. Binary Engine
 
-```bash
-cd mcp-server
-python -m venv .venv
-. .venv/bin/activate
-pip install -e .
-```
+The plugin **automatically downloads** the platform-specific binary from GitHub Releases to `~/.codemap/bin/` on first command execution. No manual steps required.
 
-Windows PowerShell:
-
-```powershell
-cd mcp-server
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-pip install -e .
-```
-
-#### 3. Start the server
-
-```bash
-cd mcp-server
-python -m codemap_mcp.server
-```
-
-The server exposes these MCP tools:
-
-- `scan_project`
-- `get_graph_status`
-- `load_graph_slice`
-- `query_symbol`
-- `query_module`
-- `update_project`
-- `analyze_impact`
-
-#### 4. Example MCP client config
-
-```json
-{
-  "mcpServers": {
-    "codemap": {
-      "command": "python",
-      "args": ["-m", "codemap_mcp.server"],
-      "cwd": "/absolute/path/to/CodeMap/mcp-server"
-    }
-  }
-}
-```
-
-### Option 2: Use as a Codex / OpenAI Skill
-
-The repository root now contains `SKILL.md` and `agents/openai.yaml`, so it can be used directly as a local skill.
-
-Typical launcher commands used by the skill:
-
-```powershell
-.\bin\codegraph.cmd status <project> --json
-.\bin\codegraph.cmd slice <module> --with-deps --dir <project>
-```
-
-```bash
-bash ./bin/codegraph status <project> --json
-bash ./bin/codegraph slice <module> --with-deps --dir <project>
-```
-
-### Option 3: Use the Rust CLI / Prebuilt Binary
-
-The root `bin/` launcher **automatically downloads** the platform-specific binary from GitHub Releases to `~/.codemap/bin/` on first command execution. No manual steps required.
-
-Binary lookup order (highest to lowest priority):
+You can also install manually. Binary lookup order (highest to lowest priority):
 
 | Priority | Location | Description |
 |---|---|---|
-| 1 | `PATH` | Arch-specific binary installed globally |
+| 1 | `PATH` | Globally installed |
 | 2 | `~/.codemap/bin/` | User-level dedicated directory (recommended) |
-| 3 | `bin/` | Repo-level launcher directory |
+| 3 | `ccplugin/bin/` | Plugin directory (backward compatible) |
 | 4 | `rust-cli/target/release/` | Local dev build |
 | 5 | Auto-download | Downloads from GitHub Releases to `~/.codemap/bin/` |
 
@@ -222,22 +68,141 @@ chmod +x ~/.codemap/bin/codegraph-aarch64-macos
 
 > Customize the directory via `CODEMAP_HOME` env var (default `~/.codemap`).
 
-After installation, use the launcher directly:
+#### 3. Install as Claude Code plugin
 
-```bash
-bash ./bin/codegraph scan /path/to/project --json
-bash ./bin/codegraph status /path/to/project --json
-bash ./bin/codegraph query handleLogin --dir /path/to/project --json
+Run the following commands inside a Claude Code session (these are slash commands, not terminal commands):
+
+**Option A: Install from local directory**
+
+```
+/plugin marketplace add /absolute/path/to/CodeMap
+/plugin install codemap@codemap-plugins
 ```
 
-Windows PowerShell:
+**Option B: Install from GitHub**
+
+```
+/plugin marketplace add killvxk/CodeMap
+/plugin install codemap@codemap-plugins
+```
+
+After installation, **restart Claude Code** for the plugin to take effect.
+
+> **How it works:** Claude Code reads `.claude-plugin/marketplace.json` at the repo root, where `"source": "./ccplugin"` points to the plugin directory. It then loads `ccplugin/.claude-plugin/plugin.json` and auto-discovers commands in `ccplugin/commands/`, skills in `ccplugin/skills/`, and hooks in `ccplugin/hooks/`.
+
+#### 4. Verify plugin installed
+
+After restarting Claude Code, type:
+
+```
+/codemap:scan
+```
+
+If the plugin is installed correctly, this command will trigger the code scan workflow.
+
+#### Uninstall
+
+```
+/plugin uninstall codemap@codemap-plugins
+```
+
+### Option 1B: Install as GitHub Copilot Plugin in VS Code
+
+The original `ccplugin/` is Claude-oriented. It depends on Claude-specific variables such as `CLAUDE_PLUGIN_ROOT`, so this repository now also ships a dedicated Copilot plugin under [copilot-plugin](/J:/AI/CodeMap/copilot-plugin).
+
+Official references:
+
+- [VS Code Agent plugins](https://code.visualstudio.com/docs/copilot/customization/agent-plugins)
+- [GitHub Copilot CLI plugin reference](https://docs.github.com/en/enterprise-cloud%40latest/copilot/reference/cli-plugin-reference)
+- [Repository custom instructions for Copilot coding agent](https://docs.github.com/en/copilot/how-tos/configure-custom-instructions/add-repository-instructions)
+
+#### Local plugin path in VS Code
+
+Add this to your VS Code `settings.json`:
+
+```json
+{
+  "chat.plugins.enabled": true,
+  "chat.plugins.paths": {
+    "/absolute/path/to/CodeMap/copilot-plugin": true
+  }
+}
+```
+
+Windows example:
+
+```json
+{
+  "chat.plugins.enabled": true,
+  "chat.plugins.paths": {
+    "J:\\AI\\CodeMap\\copilot-plugin": true
+  }
+}
+```
+
+#### Marketplace path in VS Code
+
+This repository also exposes a Copilot marketplace manifest at [marketplace.json](/J:/AI/CodeMap/.github/plugin/marketplace.json).
+
+```json
+{
+  "chat.plugins.enabled": true,
+  "chat.plugins.marketplaces": [
+    "killvxk/CodeMap"
+  ]
+}
+```
+
+#### Binary used by Copilot
+
+For Windows, install and use:
 
 ```powershell
-.\bin\codegraph.cmd scan C:\path\to\project --json
-.\bin\codegraph.cmd status C:\path\to\project --json
+New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\.codemap\bin"
+Invoke-WebRequest -Uri https://github.com/killvxk/CodeMap/releases/latest/download/codegraph-x86_64-windows.exe `
+  -OutFile "$env:USERPROFILE\.codemap\bin\codegraph-x86_64-windows.exe"
 ```
 
-### Option 4: Build from Source
+The Copilot plugin and repository instructions prefer:
+
+```text
+C:\Users\Administrator\.codemap\bin\codegraph-x86_64-windows.exe
+```
+
+Repository-level Copilot instructions are provided at [copilot-instructions.md](/J:/AI/CodeMap/.github/copilot-instructions.md).
+
+### Option 2: Download Pre-compiled Binary
+
+Download the binary for your platform from [GitHub Releases](https://github.com/killvxk/CodeMap/releases) and place it in `~/.codemap/bin/` or anywhere in your PATH:
+
+```bash
+# Linux x64
+mkdir -p ~/.codemap/bin
+curl -fSL -o ~/.codemap/bin/codegraph-x86_64-linux \
+  https://github.com/killvxk/CodeMap/releases/latest/download/codegraph-x86_64-linux
+chmod +x ~/.codemap/bin/codegraph-x86_64-linux
+
+# macOS (Apple Silicon)
+mkdir -p ~/.codemap/bin
+curl -fSL -o ~/.codemap/bin/codegraph-aarch64-macos \
+  https://github.com/killvxk/CodeMap/releases/latest/download/codegraph-aarch64-macos
+chmod +x ~/.codemap/bin/codegraph-aarch64-macos
+
+# Windows (PowerShell)
+New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\.codemap\bin"
+Invoke-WebRequest -Uri https://github.com/killvxk/CodeMap/releases/latest/download/codegraph-x86_64-windows.exe `
+  -OutFile "$env:USERPROFILE\.codemap\bin\codegraph-x86_64-windows.exe"
+```
+
+After installation, use the `codegraph` command directly:
+
+```bash
+codegraph scan /path/to/project
+codegraph status /path/to/project
+codegraph query handleLogin --dir /path/to/project
+```
+
+### Option 3: Build from Source
 
 Requires Rust toolchain ([rustup.rs](https://rustup.rs)):
 
@@ -263,31 +228,23 @@ git push origin main --tags
 # GitHub Actions will automatically build for all platforms and create a Release
 ```
 
-### Option 5: Claude Code Plugin (Compatibility)
-
-The original Claude Code plugin is still available in `ccplugin/` for existing workflows.
-
-Install inside Claude Code:
-
-```
-/plugin marketplace add /absolute/path/to/CodeMap
-/plugin install codemap@codemap-plugins
-```
-
 ---
 
 ## Project Structure
 
 ```
 CodeMap/
-├── SKILL.md                    # Repo-level Codex/OpenAI skill entry
-├── agents/
-│   └── openai.yaml             # Skill UI metadata
-├── bin/
-│   ├── codegraph               # Generic Unix launcher
-│   └── codegraph.cmd           # Generic Windows launcher
 ├── .claude-plugin/
 │   └── marketplace.json        # Marketplace manifest
+├── .github/
+│   ├── copilot-instructions.md # Repository instructions for Copilot
+│   └── plugin/
+│       └── marketplace.json    # Copilot marketplace manifest
+├── copilot-plugin/             # Copilot plugin root
+│   ├── .github/plugin/
+│   │   └── plugin.json         #   Copilot plugin manifest
+│   ├── commands/               #   Copilot slash commands
+│   └── skills/                 #   Copilot skill entry
 ├── ccplugin/                   # Plugin root (CLAUDE_PLUGIN_ROOT)
 │   ├── .claude-plugin/
 │   │   └── plugin.json         #   Plugin manifest
@@ -307,10 +264,6 @@ CodeMap/
 │   └── bin/                    #   Binary wrappers
 │       ├── codegraph           #     Unix wrapper (auto-discover/download binary)
 │       └── codegraph.cmd       #     Windows wrapper
-├── mcp-server/                 # Python MCP server
-│   ├── pyproject.toml
-│   └── codemap_mcp/
-│       └── server.py           #     stdio MCP entry
 ├── rust-cli/                   # Rust CLI source
 │   ├── Cargo.toml
 │   ├── src/
@@ -344,35 +297,33 @@ All commands run via `codegraph <command>` (pre-compiled binary, no Node.js requ
 | `update [dir]` | Incremental update — re-parse only changed files |
 | `impact <target>` | Analyze which modules are affected by changing a target |
 
-`scan`, `status`, `query`, `update`, and `impact` also support `--json` for machine-readable output.
-
 ### Examples
 
 ```bash
 # Scan a project
-codegraph scan /path/to/project --json
+codegraph scan /path/to/project
 
 # Check graph status
-codegraph status /path/to/project --json
+codegraph status /path/to/project
 
 # Query a symbol
-codegraph query "handleLogin" --dir /path/to/project --json
+codegraph query "handleLogin" --dir /path/to/project
 
 # Get module slice with dependencies
 codegraph slice auth --with-deps --dir /path/to/project
 
 # Incremental update after code changes
-codegraph update /path/to/project --json
+codegraph update /path/to/project
 
 # Impact analysis before refactoring
-codegraph impact auth --depth 3 --dir /path/to/project --json
+codegraph impact auth --depth 3 --dir /path/to/project
 ```
 
 ---
 
-## Claude Code Compatibility
+## Skills & Commands
 
-When installed as the legacy Claude Code plugin, the following capabilities remain available:
+When installed as a Claude Code plugin, the following capabilities are available:
 
 ### Auto-Triggering
 
@@ -442,6 +393,7 @@ Scanning produces a `.codemap/` directory inside the target project:
 ```bash
 cd rust-cli
 cargo test
+# 95 unit tests, all passing
 ```
 
 ## License

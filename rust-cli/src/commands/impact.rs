@@ -14,9 +14,6 @@ pub struct ImpactArgs {
     /// Project directory
     #[arg(long, default_value = ".")]
     pub dir: String,
-    /// Output machine-readable JSON
-    #[arg(long)]
-    pub json: bool,
 }
 
 pub fn run(args: ImpactArgs) {
@@ -39,46 +36,31 @@ pub fn run(args: ImpactArgs) {
 
     let result = analyze_impact(&graph, &args.target, args.depth);
 
-    if args.json {
-        let payload = serde_json::json!({
-            "target": args.target,
-            "depth": args.depth,
-            "result": result,
-        });
-        match serde_json::to_string_pretty(&payload) {
-            Ok(json) => println!("{}", json),
-            Err(e) => {
-                eprintln!("Serialization error: {}", e);
-                std::process::exit(1);
-            }
-        }
+    println!("Impact analysis for: {}", args.target);
+    println!("  Target type: {}", result.target_type.as_str());
+    println!("  Target module: {}", result.target_module);
+
+    let direct_str = if result.direct_dependants.is_empty() {
+        "(none)".to_string()
     } else {
-        println!("Impact analysis for: {}", args.target);
-        println!("  Target type: {}", result.target_type.as_str());
-        println!("  Target module: {}", result.target_module);
+        result.direct_dependants.join(", ")
+    };
+    println!("  Direct dependants: {direct_str}");
 
-        let direct_str = if result.direct_dependants.is_empty() {
-            "(none)".to_string()
-        } else {
-            result.direct_dependants.join(", ")
-        };
-        println!("  Direct dependants: {direct_str}");
+    let transitive_str = if result.transitive_dependants.is_empty() {
+        "(none)".to_string()
+    } else {
+        result.transitive_dependants.join(", ")
+    };
+    println!("  Transitive dependants: {transitive_str}");
 
-        let transitive_str = if result.transitive_dependants.is_empty() {
-            "(none)".to_string()
-        } else {
-            result.transitive_dependants.join(", ")
-        };
-        println!("  Transitive dependants: {transitive_str}");
-
-        println!(
-            "  Impacted modules ({}): {}",
-            result.impacted_modules.len(),
-            result.impacted_modules.join(", ")
-        );
-        println!("  Impacted files ({}):", result.impacted_files.len());
-        for file in &result.impacted_files {
-            println!("    - {file}");
-        }
+    println!(
+        "  Impacted modules ({}): {}",
+        result.impacted_modules.len(),
+        result.impacted_modules.join(", ")
+    );
+    println!("  Impacted files ({}):", result.impacted_files.len());
+    for file in &result.impacted_files {
+        println!("    - {file}");
     }
 }

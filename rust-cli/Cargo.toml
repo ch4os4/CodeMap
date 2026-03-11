@@ -11,10 +11,6 @@ path = "src/main.rs"
 name = "codegraph"
 path = "src/lib.rs"
 
-[features]
-default = []
-external-fixtures = []
-
 [dependencies]
 anyhow = "1"
 clap = { version = "4", features = ["derive"] }

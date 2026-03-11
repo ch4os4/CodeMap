@@ -4,7 +4,9 @@
 
 # CodeMap
 
-面向 MCP 客户端、Codex/OpenAI skill 和 Rust CLI 的 AST 代码图谱工具。扫描代码库一次，持久化结构图谱，后续会话加载紧凑切片即可恢复上下文——相比重新读取全部源码，节省约 95% token。
+基于 AST 的代码图谱映射工具，适用于 [Claude Code](https://docs.anthropic.com/en/docs/claude-code)、[GitHub Copilot](https://docs.github.com/en/copilot) 和直接 CLI 工作流。扫描代码库一次，持久化结构图谱，后续会话加载紧凑切片即可恢复上下文——相比重新读取全部源码，节省约 95% token。
+
+如果你主要想在 GitHub Copilot 中使用，请优先阅读 [COPILOT.md](/J:/AI/CodeMap/COPILOT.md)。
 
 ## 特性
 
@@ -15,83 +17,7 @@
 - **行号级引用** — 跨文件引用精确到 import 行号 + 使用行号，同文件导出符号也追踪使用位置
 - **增量更新** — 基于文件哈希比较检测变更，仅重新解析修改的文件
 - **影响分析** — 重构前查看哪些模块会受影响
-- **结构化 JSON 输出** — `scan/status/query/update/impact` 已支持 `--json`，便于 MCP 稳定调用
-- **MCP + Skill 就绪** — 仓库内置 MCP server，也可直接把仓库根目录作为 Codex/OpenAI skill 使用
-- **Claude 插件兼容** — 原有 Claude Code plugin 保留，兼容旧工作流
-
----
-
-## 原始来源与引用说明
-
-- 原始上游项目：[killvxk/CodeMap](https://github.com/killvxk/CodeMap)
-- 原始上游定位：以 Claude Code plugin 工作流为主，入口集中在 `.claude-plugin/` 与 `ccplugin/`
-- 当前仓库定位：以 MCP server、仓库级 skill、通用 CLI launcher 为主，同时保留 Claude plugin 兼容模式
-
-## 使用方式总览
-
-### 原始项目使用说明
-
-原始项目主要面向 Claude Code plugin 工作流：
-
-```text
-1. 在 Claude Code 中添加 marketplace source
-2. 安装 codemap@codemap-plugins
-3. 重启 Claude Code
-4. 使用 /codemap:scan、/codemap:load、/codemap:update、/codemap:query、/codemap:impact
-```
-
-原始典型命令如下：
-
-```text
-/plugin marketplace add /absolute/path/to/CodeMap
-/plugin install codemap@codemap-plugins
-/codemap:scan
-/codemap:load
-/codemap:query handleLogin
-```
-
-### 当前项目使用说明
-
-当前仓库已经不再局限于 Claude Code，推荐使用顺序如下：
-
-```text
-1. MCP server：用于 Codex 以及其他支持 MCP 的客户端
-2. 仓库级 skill：用于 Codex / OpenAI agent 环境
-3. 通用 codegraph CLI launcher：用于直接终端调用
-4. Claude Code plugin：仅在需要兼容旧斜杠命令工作流时使用
-```
-
-当前典型命令如下：
-
-```bash
-# MCP server
-cd mcp-server
-python -m codemap_mcp.server
-
-# CLI / launcher
-bash ./bin/codegraph scan /path/to/project --json
-bash ./bin/codegraph query handleLogin --dir /path/to/project --json
-```
-
-```powershell
-# Windows CLI / launcher
-.\bin\codegraph.cmd scan C:\path\to\project --json
-.\bin\codegraph.cmd impact auth --dir C:\path\to\project --json
-```
-
-针对 `VS Code + GitHub Copilot`，现在也提供一键安装脚本：
-
-```powershell
-.\install-vscode-copilot.cmd C:\path\to\your-workspace
-```
-
-它会自动完成三件事：
-
-```text
-1. 创建/复用 mcp-server/.venv
-2. 安装 codemap-mcp 依赖
-3. 在目标工作区生成或合并 .vscode/mcp.json
-```
+- **自动触发** — Skill 根据对话上下文自动激活
 
 ---
 
@@ -99,26 +25,11 @@ bash ./bin/codegraph query handleLogin --dir /path/to/project --json
 
 ### 前置条件
 
-- Python 3.10+，用于运行 MCP server
-- Rust 工具链仅在你需要从源码构建 CLI 时需要
+- **Claude Code** CLI：原始 Claude 插件流程
+- **GitHub Copilot**（VS Code）：Agent Plugins / 仓库指令流程
+- 或仅安装 `codegraph` 二进制直接使用 CLI
 
-### 方式一：作为 MCP Server 运行（推荐）
-
-#### 最快方式：给 VS Code Copilot 一键安装
-
-Windows:
-
-```powershell
-.\install-vscode-copilot.cmd C:\path\to\your-workspace
-```
-
-macOS / Linux:
-
-```bash
-bash ./scripts/install-vscode-copilot.sh /path/to/your-workspace
-```
-
-安装脚本会把 CodeMap MCP server 写入目标工作区的 `.vscode/mcp.json`。
+### 方式一：作为 Claude Code 插件安装（推荐）
 
 #### 1. 克隆仓库
 
@@ -127,82 +38,17 @@ git clone https://github.com/killvxk/CodeMap.git
 cd CodeMap
 ```
 
-#### 2. 安装 MCP server 包
+#### 2. 二进制引擎
 
-```bash
-cd mcp-server
-python -m venv .venv
-. .venv/bin/activate
-pip install -e .
-```
+插件首次执行命令时会**自动从 GitHub Releases 下载**对应平台的二进制到 `~/.codemap/bin/`，无需手动操作。
 
-Windows PowerShell:
-
-```powershell
-cd mcp-server
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-pip install -e .
-```
-
-#### 3. 启动 server
-
-```bash
-cd mcp-server
-python -m codemap_mcp.server
-```
-
-暴露的 MCP tools:
-
-- `scan_project`
-- `get_graph_status`
-- `load_graph_slice`
-- `query_symbol`
-- `query_module`
-- `update_project`
-- `analyze_impact`
-
-#### 4. MCP 客户端配置示例
-
-```json
-{
-  "mcpServers": {
-    "codemap": {
-      "command": "python",
-      "args": ["-m", "codemap_mcp.server"],
-      "cwd": "/absolute/path/to/CodeMap/mcp-server"
-    }
-  }
-}
-```
-
-### 方式二：作为 Codex / OpenAI Skill 使用
-
-仓库根目录已经包含 `SKILL.md` 和 `agents/openai.yaml`，可以直接作为本地 skill 使用。
-
-skill 内通常调用以下命令：
-
-```powershell
-.\bin\codegraph.cmd status <project> --json
-.\bin\codegraph.cmd slice <module> --with-deps --dir <project>
-```
-
-```bash
-bash ./bin/codegraph status <project> --json
-bash ./bin/codegraph slice <module> --with-deps --dir <project>
-```
-
-### 方式三：使用 Rust CLI / 预编译二进制
-
-根目录 `bin/` launcher 会在首次执行时**自动从 GitHub Releases 下载**对应平台的二进制到 `~/.codemap/bin/`，无需手动操作。
-
-二进制查找优先级从高到低：
+你也可以提前手动安装（二进制查找优先级从高到低）：
 
 | 优先级 | 位置 | 说明 |
 |---|---|---|
-| 1 | `PATH` | 全局安装的架构对应二进制 |
+| 1 | `PATH` | 全局安装 |
 | 2 | `~/.codemap/bin/` | 用户级专用目录（推荐） |
-| 3 | `bin/` | 仓库级 launcher 目录 |
+| 3 | `ccplugin/bin/` | 插件目录（向后兼容） |
 | 4 | `rust-cli/target/release/` | 本地开发构建 |
 | 5 | 自动下载 | 从 GitHub Releases 下载到 `~/.codemap/bin/` |
 
@@ -222,22 +68,141 @@ chmod +x ~/.codemap/bin/codegraph-aarch64-macos
 
 > 支持通过环境变量 `CODEMAP_HOME` 自定义目录（默认 `~/.codemap`）。
 
-安装后可直接调用 launcher：
+#### 3. 安装为 Claude Code 插件
 
-```bash
-bash ./bin/codegraph scan /path/to/project --json
-bash ./bin/codegraph status /path/to/project --json
-bash ./bin/codegraph query handleLogin --dir /path/to/project --json
+在 Claude Code 对话中执行以下命令（注意：这是 Claude Code 内部的斜杠命令，不是终端命令）：
+
+**方式 A：从本地目录安装（开发/个人使用推荐）**
+
+```
+/plugin marketplace add /absolute/path/to/CodeMap
+/plugin install codemap@codemap-plugins
 ```
 
-Windows PowerShell:
+**方式 B：从 GitHub 安装**
+
+```
+/plugin marketplace add killvxk/CodeMap
+/plugin install codemap@codemap-plugins
+```
+
+安装后**重启 Claude Code** 使插件生效。
+
+> **原理：** Claude Code 读取根目录的 `.claude-plugin/marketplace.json`，其中 `"source": "./ccplugin"` 指向插件目录。然后从 `ccplugin/.claude-plugin/plugin.json` 加载插件清单，自动发现 `ccplugin/commands/` 下的斜杠命令、`ccplugin/skills/` 下的 skill、以及 `ccplugin/hooks/` 下的事件钩子。
+
+#### 4. 验证插件已安装
+
+重启 Claude Code 后，输入：
+
+```
+/codemap:scan
+```
+
+如果插件正确安装，该命令会触发代码扫描流程。
+
+#### 卸载
+
+```
+/plugin uninstall codemap@codemap-plugins
+```
+
+### 方式一B：在 VS Code 中作为 GitHub Copilot 插件安装
+
+原始 `ccplugin/` 面向 Claude Code，内部依赖 `CLAUDE_PLUGIN_ROOT` 这类 Claude 专用变量。为了在 Copilot 中稳定使用，仓库新增了专用的 [copilot-plugin](/J:/AI/CodeMap/copilot-plugin)。
+
+官方参考：
+
+- [VS Code Agent plugins](https://code.visualstudio.com/docs/copilot/customization/agent-plugins)
+- [GitHub Copilot CLI plugin reference](https://docs.github.com/en/enterprise-cloud%40latest/copilot/reference/cli-plugin-reference)
+- [为仓库添加 Copilot 自定义指令](https://docs.github.com/en/copilot/how-tos/configure-custom-instructions/add-repository-instructions)
+
+#### 方式 A：VS Code 本地插件路径
+
+将以下内容加入 VS Code `settings.json`：
+
+```json
+{
+  "chat.plugins.enabled": true,
+  "chat.plugins.paths": {
+    "/absolute/path/to/CodeMap/copilot-plugin": true
+  }
+}
+```
+
+Windows 示例：
+
+```json
+{
+  "chat.plugins.enabled": true,
+  "chat.plugins.paths": {
+    "J:\\AI\\CodeMap\\copilot-plugin": true
+  }
+}
+```
+
+#### 方式 B：VS Code marketplace 路径
+
+仓库同时提供 Copilot marketplace 清单：[marketplace.json](/J:/AI/CodeMap/.github/plugin/marketplace.json)
+
+```json
+{
+  "chat.plugins.enabled": true,
+  "chat.plugins.marketplaces": [
+    "killvxk/CodeMap"
+  ]
+}
+```
+
+#### Copilot 使用的二进制
+
+Windows 建议安装：
 
 ```powershell
-.\bin\codegraph.cmd scan C:\path\to\project --json
-.\bin\codegraph.cmd status C:\path\to\project --json
+New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\.codemap\bin"
+Invoke-WebRequest -Uri https://github.com/killvxk/CodeMap/releases/latest/download/codegraph-x86_64-windows.exe `
+  -OutFile "$env:USERPROFILE\.codemap\bin\codegraph-x86_64-windows.exe"
 ```
 
-### 方式四：从源码构建
+Copilot 插件与仓库指令优先使用：
+
+```text
+C:\Users\Administrator\.codemap\bin\codegraph-x86_64-windows.exe
+```
+
+仓库级 Copilot 指令文件位于 [copilot-instructions.md](/J:/AI/CodeMap/.github/copilot-instructions.md)。
+
+### 方式二：下载预编译二进制
+
+从 [GitHub Releases](https://github.com/killvxk/CodeMap/releases) 下载适合你平台的二进制文件，放到 `~/.codemap/bin/` 或 PATH 中：
+
+```bash
+# Linux x64
+mkdir -p ~/.codemap/bin
+curl -fSL -o ~/.codemap/bin/codegraph-x86_64-linux \
+  https://github.com/killvxk/CodeMap/releases/latest/download/codegraph-x86_64-linux
+chmod +x ~/.codemap/bin/codegraph-x86_64-linux
+
+# macOS (Apple Silicon)
+mkdir -p ~/.codemap/bin
+curl -fSL -o ~/.codemap/bin/codegraph-aarch64-macos \
+  https://github.com/killvxk/CodeMap/releases/latest/download/codegraph-aarch64-macos
+chmod +x ~/.codemap/bin/codegraph-aarch64-macos
+
+# Windows (PowerShell)
+New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\.codemap\bin"
+Invoke-WebRequest -Uri https://github.com/killvxk/CodeMap/releases/latest/download/codegraph-x86_64-windows.exe `
+  -OutFile "$env:USERPROFILE\.codemap\bin\codegraph-x86_64-windows.exe"
+```
+
+安装后可以直接使用 `codegraph` 命令：
+
+```bash
+codegraph scan /path/to/project
+codegraph status /path/to/project
+codegraph query handleLogin --dir /path/to/project
+```
+
+### 方式三：从源码构建
 
 需要 Rust 工具链（[rustup.rs](https://rustup.rs)）：
 
@@ -263,31 +228,23 @@ git push origin main --tags
 # GitHub Actions 会自动为所有平台构建并创建 Release
 ```
 
-### 方式五：Claude Code 插件（兼容模式）
-
-原有 Claude Code plugin 仍然保留在 `ccplugin/`，供已有工作流继续使用。
-
-在 Claude Code 中安装：
-
-```
-/plugin marketplace add /absolute/path/to/CodeMap
-/plugin install codemap@codemap-plugins
-```
-
 ---
 
 ## 项目结构
 
 ```
 CodeMap/
-├── SKILL.md                    # 仓库级 Codex/OpenAI skill 入口
-├── agents/
-│   └── openai.yaml             # skill UI 元数据
-├── bin/
-│   ├── codegraph               # 通用 Unix launcher
-│   └── codegraph.cmd           # 通用 Windows launcher
 ├── .claude-plugin/
 │   └── marketplace.json        # 插件市场清单
+├── .github/
+│   ├── copilot-instructions.md # Copilot 仓库级自定义指令
+│   └── plugin/
+│       └── marketplace.json    # Copilot marketplace 清单
+├── copilot-plugin/             # Copilot 插件根目录
+│   ├── .github/plugin/
+│   │   └── plugin.json         #   Copilot 插件清单
+│   ├── commands/               #   Copilot 斜杠命令
+│   └── skills/                 #   Copilot Skill 入口
 ├── ccplugin/                   # 插件根目录 (CLAUDE_PLUGIN_ROOT)
 │   ├── .claude-plugin/
 │   │   └── plugin.json         #   插件清单
@@ -307,10 +264,6 @@ CodeMap/
 │   └── bin/                    #   二进制 wrapper
 │       ├── codegraph           #     Unix wrapper (自动发现/下载二进制)
 │       └── codegraph.cmd       #     Windows wrapper
-├── mcp-server/                 # Python MCP server
-│   ├── pyproject.toml
-│   └── codemap_mcp/
-│       └── server.py           #     stdio MCP 入口
 ├── rust-cli/                   # Rust CLI 源码
 │   ├── Cargo.toml
 │   ├── src/
@@ -344,35 +297,33 @@ CodeMap/
 | `update [dir]` | 增量更新——仅重新解析变更的文件 |
 | `impact <target>` | 分析修改目标会影响哪些模块 |
 
-`scan`、`status`、`query`、`update`、`impact` 额外支持 `--json` 机器可读输出。
-
 ### 示例
 
 ```bash
 # 扫描项目
-codegraph scan /path/to/project --json
+codegraph scan /path/to/project
 
 # 检查图谱状态
-codegraph status /path/to/project --json
+codegraph status /path/to/project
 
 # 查询符号
-codegraph query "handleLogin" --dir /path/to/project --json
+codegraph query "handleLogin" --dir /path/to/project
 
 # 获取模块切片（含依赖）
 codegraph slice auth --with-deps --dir /path/to/project
 
 # 增量更新
-codegraph update /path/to/project --json
+codegraph update /path/to/project
 
 # 影响分析
-codegraph impact auth --depth 3 --dir /path/to/project --json
+codegraph impact auth --depth 3 --dir /path/to/project
 ```
 
 ---
 
-## Claude Code 兼容能力
+## Skills & Commands
 
-作为旧版 Claude Code plugin 安装后，以下能力仍可继续使用：
+作为 Claude Code 插件安装后，提供以下能力：
 
 ### 自动触发
 
@@ -442,6 +393,7 @@ codegraph impact auth --depth 3 --dir /path/to/project --json
 ```bash
 cd rust-cli
 cargo test
+# 95 unit tests, all passing
 ```
 
 ## 许可证
